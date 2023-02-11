@@ -15,7 +15,7 @@ afterEach(async () => {
     await cleanDb()
 })
 
-const server = supertest(app)
+const server = supertest(app);
 
 describe("GET /bookings", () => {
     it("should respond with statuscode 401 if no token is given", async () => {
@@ -41,7 +41,8 @@ describe("GET /bookings", () => {
             const token = await generateValidToken(user);
             const createdHotel = await createHotel();
             const createdRoom = await createRoomWithHotelId(createdHotel.id);
-            const createdBooking = await createBooking(createdRoom.id, user.id);
+            console.log(user, createdRoom)
+            const createdBooking = await createBooking(user.id, createdRoom.id);
 
             const { status, body } = await server.get("/bookings").set("Authorization", `Bearer ${token}`);
 

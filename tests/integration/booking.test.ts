@@ -83,6 +83,19 @@ describe("POST /booking", () => {
     })
     describe("when token exists and it's valid", () => {
         describe("403 cases", () => {
+            it("should respond with statuscode 403 if user didn't pay", async () => {
+                const user = await createUser();
+                const token = await generateValidToken(user);
+                const hotel = await createHotel();
+                const room = await createRoomWithHotelId(hotel.id);
+
+                const enrollment = await createEnrollmentWithAddress(user);
+                const ticketType = await createTicketTypeWithHotel();
+                const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.RESERVED);
+
+                const { status, body } = await server.post("/booking").set("Authorization", `Bearer ${token}`).send({ roomId: room.id })
+                expect(status).toBe(httpStatus.FORBIDDEN)
+            })
             it("should respond with statuscode 403 if ticket is remote", async () => {
                 const user = await createUser();
                 const token = await generateValidToken(user);
@@ -94,21 +107,7 @@ describe("POST /booking", () => {
                 const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
                 await createPayment(ticket.id, ticketType.price)
 
-                const { status } = await server.post(`/booking`).set("Authorization", `Bearer ${token}`).send({ roomId: room.id }); expect(status).toBe(httpStatus.FORBIDDEN)
-
-            })
-            it("should respond with statuscode 403 if user didn't pay", async () => {
-                const user = await createUser();
-                const token = await generateValidToken(user);
-                const hotel = await createHotel();
-                const room = await createRoomWithHotelId(hotel.id);
-
-                const enrollment = await createEnrollmentWithAddress(user);
-                const ticketType = await createTicketTypeWithHotel();
-                const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-
-                const { status, body } = await server.post("/booking").set("Auhtorization", `Bearer ${token}`).send({ roomId: room.id })
-                console.log(body)
+                const { status } = await server.post(`/booking`).set("Authorization", `Bearer ${token}`).send({ roomId: room.id }); 
                 expect(status).toBe(httpStatus.FORBIDDEN)
             })
             it("should respond with statuscode 403 if room fully booked", async () => {
@@ -181,9 +180,9 @@ describe("PUT /booking/:bookingId", () => {
 
             const enrollment = await createEnrollmentWithAddress(user);
             const ticketType = await createTicketTypeWithHotel();
+            
             const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-            await createPayment(ticket.id, ticketType.price)
-
+            await createPayment(ticket.id, ticketType.price);
             await createBooking(user.id, room.id);
 
             const newRoom = await createRoomWithHotelId(hotel.id);
@@ -197,7 +196,7 @@ describe("PUT /booking/:bookingId", () => {
             const { status } = await server.put(`/booking/${booking.id}`).set("Authorization", `Bearer ${token}`).send({ roomId: newRoom.id });
             expect(status).toBe(httpStatus.FORBIDDEN)
         })
-        it("should respond with statuscode 200 if ok",async () => {
+        it("should respond with statuscode 403 if ticket is not reserved",async () => {
             const user = await createUser();
             const token = await generateValidToken(user);
             const hotel = await createHotel();
@@ -207,6 +206,23 @@ describe("PUT /booking/:bookingId", () => {
             const ticketType = await createTicketTypeWithHotel();
             const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
             await createPayment(ticket.id, ticketType.price)
+
+            await createBooking(user.id, room.id);
+            const newRoom = await createRoomWithHotelId(hotel.id);
+
+            const booking = await createBooking(user.id, newRoom.id);
+            const { status } = await server.put(`/booking/${booking.id}`).set("Authorization", `Bearer ${token}`).send({ roomId: newRoom.id });
+            expect(status).toBe(httpStatus.FORBIDDEN)
+        })
+        it("should respond with statuscode 200 if ok",async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const hotel = await createHotel();
+            const room = await createRoomWithHotelId(hotel.id);
+
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketTypeWithHotel();
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.RESERVED);
 
             await createBooking(user.id, room.id);
             const newRoom = await createRoomWithHotelId(hotel.id);

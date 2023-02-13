@@ -22,6 +22,7 @@ export async function postBooking(req: AuthenticatedRequest, res: Response) {
         const newRoom = await bookingsService.postBookings(roomId, userId);
         return res.status(httpStatus.OK).json({ "roomId": newRoom.id })
     } catch (error) {
+        
         if (error.name === "NotFoundError") {
             return res.sendStatus(httpStatus.NOT_FOUND);
         }

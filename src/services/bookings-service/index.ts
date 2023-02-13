@@ -27,6 +27,20 @@ async function checkTicket(userId: number) {
     }
 }
 
+async function checkReserve(userId: number){
+    const enrollment = await enrollmentRepository.findWithAddressByUserId(userId);
+
+    if (!enrollment) {
+        throw notFoundError();
+    }
+
+    const ticket = await ticketRepository.findTicketByEnrollmentId(enrollment.id);
+    
+    if (!ticket || ticket.TicketType.isRemote || !ticket.TicketType.includesHotel || ticket.status !== "RESERVED"){
+        throw forbiddenError()
+    }
+}
+
 async function countBookings(roomId: number) {
     const roomCount = await bookingsRespostory.countBookings(roomId);
     if (roomCount >= 3) {
@@ -46,7 +60,7 @@ async function postBookings(roomId: number, userId: number) {
 
 async function putBooking(roomId: number, userId: number, bookingId: number){
     await getBookings(undefined, roomId)
-
+    await checkReserve(userId);
     await countBookings(roomId);
     
     const booking = await bookingsRespostory.putBooking(roomId, bookingId);
